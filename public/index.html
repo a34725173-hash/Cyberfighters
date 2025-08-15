@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Cyberfighter 網絡格鬥遊戲</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="lang_zh.js"></script>
@@ -21,13 +21,17 @@
     <h1 id="title"></h1>
     <div id="login">
       <label id="enterNameLabel"></label>
-      <input type="text" id="username" maxlength="12"/>
+      <input type="text" id="username" maxlength="12" />
       <button id="enterGame"></button>
     </div>
-    <div id="mainGame" style="display:none;">
+    <div id="mainGame" style="display:none">
       <div id="status"></div>
-      <div id="game-container"></div>
-      <div id="chat"></div>
+      <div style="display:flex;">
+        <div id="game-container" style="flex:2; margin-right:16px;"></div>
+        <div id="battle-log" style="flex:1; background:#1e1e2a; border-radius:8px; padding:1em; overflow-y:auto; max-height:340px;">
+          <b>戰鬥紀錄</b><hr>
+        </div>
+      </div>
     </div>
   </div>
   <script src="main.js"></script>
