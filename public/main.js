@@ -16,7 +16,7 @@ let gameInited = false;
 let myRole = null;
 let myHP = 200, opHP = 200, round = 1;
 let battleLogs = [];
-let myDice = 0, opDice = 0; // 新增：用來記錄本回合骰子
+let myDice = 0, opDice = 0;
 
 document.getElementById('enterGame').onclick = function () {
   myName = document.getElementById('username').value || "Player" + Math.floor(Math.random() * 100);
@@ -26,11 +26,14 @@ document.getElementById('enterGame').onclick = function () {
   document.getElementById('status').innerText = window.LANGS[LANG].waiting;
 };
 
-// 狀態顯示（HP/角色/骰數）
 function updateStatus() {
   document.getElementById('status').innerHTML = 
     `${myName} (${myRole === 'atk' ? '攻擊方' : '防守方'}) HP:${myHP} 🎲${myDice}<br>` +
     `${opponentName} HP:${opHP} 🎲${opDice}`;
+}
+
+function updateBattleLog() {
+  document.getElementById('battle-log').innerHTML = '<b>戰鬥紀錄</b><hr>' + battleLogs.join("<hr>");
 }
 
 Network.onPlayers(function(list){
@@ -58,7 +61,6 @@ Network.onBattle(function(choices){
       opChoice = choice;
     }
   }
-  // 記錄骰子
   if(myRole === 'atk'){
     myDice = myChoice.atkDice;
     opDice = opChoice.defDice;
@@ -67,7 +69,7 @@ Network.onBattle(function(choices){
     opDice = opChoice.atkDice;
   }
   updateStatus();
-  // 戰鬥判斷
+
   let resultStr = '';
   if(myRole === 'atk'){
     let atk = window.ATTACK_METHODS.find(x => x.id === myChoice.atkMethod);
@@ -106,11 +108,8 @@ Network.onBattle(function(choices){
       myHP -= base;
     }
   }
-  // push battle log
   battleLogs.push(`第${round}回合：<br>`+resultStr);
-
-  document.getElementById('game-container').innerHTML = battleLogs.join("<hr>");
-  updateStatus();
+  updateBattleLog();
 
   setTimeout(() => {
     if(myHP <= 0 || opHP <= 0){
@@ -130,7 +129,6 @@ function startGame(){
 }
 
 function runRound(){
-  // 擲骰動畫＆顯示（可加setTimeout或更炫動畫）
   let dice = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
   if(myRole === 'atk'){
     myDice = dice;
