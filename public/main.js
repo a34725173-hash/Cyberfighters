@@ -23,10 +23,12 @@ const socket = io();
 
 socket.on('connect', () => {
   myId = socket.id;
+  console.log("Connected with id: ", myId);
 });
 
 document.getElementById('enterGame').onclick = function () {
   myName = document.getElementById('username').value || "Player" + Math.floor(Math.random() * 100);
+  console.log("Setting name: ", myName);
   socket.emit("setName", myName);
   document.getElementById('login').style.display = 'none';
   document.getElementById('mainGame').style.display = '';
@@ -35,9 +37,11 @@ document.getElementById('enterGame').onclick = function () {
 
 socket.on("players", function (list) {
   players = list;
+  console.log("Players list:", players);
   if (players.length == 2 && !gameInited) {
     gameInited = true;
     opponentName = players.find(n => n !== myName);
+    console.log("Opponent identified:", opponentName);
     startGame();
   } else if (players.length < 2) {
     document.getElementById('status').innerText = window.LANGS[LANG].noOpponent;
@@ -45,12 +49,14 @@ socket.on("players", function (list) {
 });
 
 socket.on("roleAssign", data => {
+  console.log("Role assigned:", data);
   myRole = data.role;
   myDice = data.dice;
   showGameOptions();
 });
 
 socket.on("battle", function (choices) {
+  console.log("Battle received:", choices);
   let ids = Object.keys(choices);
   let myChoice = choices[myId];
   let opId = ids.find(id => id !== myId);
@@ -101,7 +107,8 @@ socket.on("battle", function (choices) {
 
   setTimeout(() => {
     if (myHP <= 0 || opHP <= 0) {
-      document.getElementById('status').innerHTML += "<br>" + window.LANGS[LANG].battleLog;
+      document.getElementById('status').innerHTML += "<br>遊戲結束";
+      console.log("Game Over");
     } else {
       round++;
       myDice = 0; opDice = 0;
@@ -128,7 +135,7 @@ function showGameOptions() {
     let attacks = window.ATTACK_METHODS.slice(0);
     attacks.sort(() => Math.random() - 0.5);
     attacks = attacks.slice(0, 3);
-    let str = `<b>${window.LANGS[LANG].chooseAttack}：</b><br>`;
+    let str = `<b>請選擇攻擊方式：</b><br>`;
     str += `<div>你的骰子：🎲<b>${myDice}</b></div>`;
     attacks.forEach(a => {
       str += `<button onclick="chooseAtk('${a.id}')">${a.name[LANG]}</button> (${a.desc[LANG]})<br>`;
@@ -136,10 +143,10 @@ function showGameOptions() {
     cmdArea.innerHTML = str;
     window.chooseAtk = function (methodId) {
       socket.emit("choice", { atkMethod: methodId, atkDice: myDice, role: 'atk', id: myId, name: myName });
-      cmdArea.innerHTML = window.LANGS[LANG].waiting;
+      cmdArea.innerHTML = '等待對方選擇...';
     };
   } else {
-    let str = `<b>${window.LANGS[LANG].chooseDefense}：</b><br>`;
+    let str = `<b>請選擇防守方式：</b><br>`;
     str += `<div>你的骰子：🎲<b>${myDice}</b></div>`;
     window.DEFENSE_METHODS.forEach(d => {
       str += `<button onclick="chooseDef('${d.id}')">${d.name[LANG]}</button><br>`;
@@ -147,7 +154,7 @@ function showGameOptions() {
     cmdArea.innerHTML = str;
     window.chooseDef = function (defMethod) {
       socket.emit("choice", { defMethod: defMethod, defDice: myDice, role: 'def', id: myId, name: myName });
-      cmdArea.innerHTML = window.LANGS[LANG].waiting;
+      cmdArea.innerHTML = '等待對方選擇...';
     };
   }
 }
