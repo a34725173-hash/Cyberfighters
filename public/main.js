@@ -23,41 +23,40 @@ const socket = io();
 
 socket.on('connect', () => {
   myId = socket.id;
-  console.log("Connected with id: ", myId);
+  console.debug('Socket connected with ID:', myId);
 });
 
 document.getElementById('enterGame').onclick = function () {
-  myName = document.getElementById('username').value || "Player" + Math.floor(Math.random() * 100);
-  console.log("Setting name: ", myName);
-  socket.emit("setName", myName);
+  myName = document.getElementById('username').value || 'Player' + Math.floor(Math.random() * 100);
+  console.debug('Player name set to:', myName);
+  socket.emit('setName', myName);
   document.getElementById('login').style.display = 'none';
   document.getElementById('mainGame').style.display = '';
   document.getElementById('status').innerText = window.LANGS[LANG].waiting;
 };
 
-socket.on("players", function (list) {
+socket.on('players', (list) => {
   players = list;
-  console.log("Players list:", players);
-  if (players.length == 2 && !gameInited) {
+  console.debug('Player list updated:', players);
+  if (players.length === 2 && !gameInited) {
     gameInited = true;
-    opponentName = players.find(n => n !== myName);
-    console.log("Opponent identified:", opponentName);
+    opponentName = players.find(name => name !== myName);
     startGame();
   } else if (players.length < 2) {
     document.getElementById('status').innerText = window.LANGS[LANG].noOpponent;
   }
 });
 
-socket.on("roleAssign", data => {
-  console.log("Role assigned:", data);
+socket.on('roleAssign', (data) => {
+  console.debug('Role assigned:', data);
   myRole = data.role;
   myDice = data.dice;
   showGameOptions();
 });
 
-socket.on("battle", function (choices) {
-  console.log("Battle received:", choices);
-  let ids = Object.keys(choices);
+socket.on('battle', (choices) => {
+  console.debug('Battle data received:', choices);
+  const ids = Object.keys(choices);
   let myChoice = choices[myId];
   let opId = ids.find(id => id !== myId);
   let opChoice = choices[opId];
@@ -65,18 +64,17 @@ socket.on("battle", function (choices) {
 
   updateStatus();
 
-  let resultStr = `【${myName}🎲${myDice} vs ${opponentName}🎲${opDice}】<br>`;
+  let resultStr = `【${myName} 🎲${myDice} vs ${opponentName} 🎲${opDice}】<br>`;
   if (myRole === 'atk') {
     let atk = window.ATTACK_METHODS.find(x => x.id === myChoice.atkMethod);
     let base = atk.calc(myChoice.atkDice, opChoice.defDice, opChoice.defMethod);
     let def = window.DEFENSE_METHODS.find(x => x.id === opChoice.defMethod);
     let succ = def.success(opChoice.defDice, myChoice.atkDice);
-    let dmg = 0;
     if (opChoice.defMethod === 'counter' && succ) {
       resultStr += `${opponentName} 反擊成功，你受${base}傷害。<br>`;
       myHP -= base;
     } else if (succ) {
-      dmg = def.resolve(base);
+      let dmg = def.resolve(base);
       resultStr += `${opponentName} ${def.name[LANG]}成功，只受${dmg}傷害。<br>`;
       opHP -= dmg;
     } else {
@@ -88,12 +86,11 @@ socket.on("battle", function (choices) {
     let base = atk.calc(opChoice.atkDice, myChoice.defDice, myChoice.defMethod);
     let def = window.DEFENSE_METHODS.find(x => x.id === myChoice.defMethod);
     let succ = def.success(myChoice.defDice, opChoice.atkDice);
-    let dmg = 0;
     if (myChoice.defMethod === 'counter' && succ) {
       resultStr += `你反擊成功，${opponentName} 受${base}傷害。<br>`;
       opHP -= base;
     } else if (succ) {
-      dmg = def.resolve(base);
+      let dmg = def.resolve(base);
       resultStr += `你${def.name[LANG]}成功，只受${dmg}傷害。<br>`;
       myHP -= dmg;
     } else {
@@ -108,10 +105,11 @@ socket.on("battle", function (choices) {
   setTimeout(() => {
     if (myHP <= 0 || opHP <= 0) {
       document.getElementById('status').innerHTML += "<br>遊戲結束";
-      console.log("Game Over");
+      console.debug('Game Over');
     } else {
       round++;
-      myDice = 0; opDice = 0;
+      myDice = 0;
+      opDice = 0;
       document.getElementById('game-container').innerHTML = '';
       document.getElementById('status').innerText = '等待下一回合...';
     }
@@ -125,7 +123,8 @@ function updateStatus() {
 }
 
 function updateBattleLog() {
-  document.getElementById('battle-log').innerHTML = '<b>戰鬥紀錄</b><hr>' + battleLogs.join("<hr>");
+  document.getElementById('battle-log').innerHTML =
+    '<b>戰鬥紀錄</b><hr>' + battleLogs.join("<hr>");
 }
 
 function showGameOptions() {
@@ -142,7 +141,7 @@ function showGameOptions() {
     });
     cmdArea.innerHTML = str;
     window.chooseAtk = function (methodId) {
-      socket.emit("choice", { atkMethod: methodId, atkDice: myDice, role: 'atk', id: myId, name: myName });
+      socket.emit('choice', { atkMethod: methodId, atkDice: myDice, role: 'atk', id: myId, name: myName });
       cmdArea.innerHTML = '等待對方選擇...';
     };
   } else {
@@ -153,14 +152,17 @@ function showGameOptions() {
     });
     cmdArea.innerHTML = str;
     window.chooseDef = function (defMethod) {
-      socket.emit("choice", { defMethod: defMethod, defDice: myDice, role: 'def', id: myId, name: myName });
+      socket.emit('choice', { defMethod: defMethod, defDice: myDice, role: 'def', id: myId, name: myName });
       cmdArea.innerHTML = '等待對方選擇...';
     };
   }
 }
 
 function startGame() {
-  round = 1; myHP = 200; opHP = 200; battleLogs = [];
+  round = 1;
+  myHP = 200;
+  opHP = 200;
+  battleLogs = [];
   document.getElementById('game-container').innerHTML = '';
   document.getElementById('status').innerText = '等待分配角色...';
 }
