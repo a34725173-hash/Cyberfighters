@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Cyberfighter 網絡格鬥遊戲</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="lang_zh.js"></script>
+  <script src="lang_en.js"></script>
+  <script src="gameConfig.js"></script>
+  <script src="network.js"></script>
+</head>
+<body>
+  <div id="wrapper">
+    <div id="lang-bar">
+      <button onclick="window.setLang('zh')">中文</button>
+      <button onclick="window.setLang('en')">English</button>
+    </div>
+    <h1 id="title"></h1>
+    <div id="login">
+      <label id="enterNameLabel"></label>
+      <input type="text" id="username" maxlength="12"/>
+      <button id="enterGame"></button>
+    </div>
+    <div id="mainGame" style="display:none;">
+      <div id="status"></div>
+      <div id="game-container"></div>
+      <div id="chat"></div>
+    </div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

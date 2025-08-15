@@ -1,0 +1,14 @@
+body {
+  background: #181829;
+  margin: 0; padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  color: #fff;
+}
+#wrapper { max-width: 600px; margin: 1.5rem auto; }
+#lang-bar { text-align: right; margin: 1rem; }
+button { font-size: 1.1rem; margin: 0 2px; }
+input[type="text"] { font-size: 1.1rem; margin-left: 6px; width: 140px; }
+#login, #mainGame { padding: 1.5rem; border-radius: 12px; background: #282845; }
+#title { text-align: center; }
+#status { margin: 1rem 0; font-size: 1.15rem; min-height: 1.5rem; }
+#game-container { min-height: 320px; background: #111122; border-radius: 10px; margin-bottom: 2rem; }
