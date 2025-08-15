@@ -11,12 +11,14 @@ function setText() {
 setText();
 
 let myName = '';
+let opponentName = '';
 let players = [];
 let gameInited = false;
 let myRole = null;
 let myHP = 200,
   opHP = 200,
   round = 1;
+let battleLogs = [];
 
 document.getElementById('enterGame').onclick = function () {
   myName = document.getElementById('username').value || "Player" + Math.floor(Math.random() * 100);
@@ -26,10 +28,16 @@ document.getElementById('enterGame').onclick = function () {
   document.getElementById('status').innerText = window.LANGS[LANG].waiting;
 };
 
+function updateStatus() {
+  document.getElementById('status').innerText =
+    `${myName} (${myRole === 'atk' ? '攻擊方' : '防守方'}) HP:${myHP}  |  ${opponentName} HP:${opHP}`;
+}
+
 Network.onPlayers(function (list) {
   players = list;
   if (players.length == 2 && !gameInited) {
     gameInited = true;
+    opponentName = players.find(p => p !== myName);
     startGame();
   } else if (players.length < 2) {
     document.getElementById('status').innerText = window.LANGS[LANG].noOpponent;
@@ -38,7 +46,7 @@ Network.onPlayers(function (list) {
 
 Network.onRoleAssign(function (role) {
   myRole = role;
-  document.getElementById('status').innerText = `你是${role === 'atk' ? '攻擊方' : '防守方'}`;
+  updateStatus();
   runRound();
 });
 
@@ -46,44 +54,44 @@ Network.onBattle(function (choices) {
   let [a, b] = Object.values(choices);
   let resultStr = '';
   if (a.role === 'atk') {
-    let atk = window.ATTACK_METHODS.find((x) => x.id === a.atkMethod);
+    let atk = window.ATTACK_METHODS.find(x => x.id === a.atkMethod);
     let base = atk.calc(a.atkDice, b.defDice, b.defMethod);
-    let def = window.DEFENSE_METHODS.find((x) => x.id === b.defMethod);
+    let def = window.DEFENSE_METHODS.find(x => x.id === b.defMethod);
     let succ = def.success(b.defDice, a.atkDice);
     let dmg = 0;
     if (b.defMethod == 'counter' && succ) {
-      resultStr += '對手反擊成功，你受' + base + '傷害。<br>';
+      resultStr += `${opponentName} 反擊成功，你受${base}傷害。<br>`;
       myHP -= base;
     } else if (succ) {
       dmg = def.resolve(base);
-      resultStr += '對手' + def.name[LANG] + '成功，你只受' + dmg + '傷害。<br>';
+      resultStr += `${opponentName} ${def.name[LANG]}成功，你只受${dmg}傷害。<br>`;
       opHP -= dmg;
     } else {
-      resultStr += '對手防禦失敗，受' + base + '傷害。<br>';
+      resultStr += `${opponentName} 防禦失敗，受${base}傷害。<br>`;
       opHP -= base;
     }
   } else {
-    let atk = window.ATTACK_METHODS.find((x) => x.id === b.atkMethod);
+    let atk = window.ATTACK_METHODS.find(x => x.id === b.atkMethod);
     let base = atk.calc(b.atkDice, a.defDice, a.defMethod);
-    let def = window.DEFENSE_METHODS.find((x) => x.id === a.defMethod);
+    let def = window.DEFENSE_METHODS.find(x => x.id === a.defMethod);
     let succ = def.success(a.defDice, b.atkDice);
     let dmg = 0;
     if (a.defMethod == 'counter' && succ) {
-      resultStr += '你反擊成功，對手受' + base + '傷害。<br>';
+      resultStr += `你反擊成功，${opponentName} 受${base}傷害。<br>`;
       opHP -= base;
     } else if (succ) {
       dmg = def.resolve(base);
-      resultStr += '你' + def.name[LANG] + '成功，只受' + dmg + '傷害。<br>';
+      resultStr += `你${def.name[LANG]}成功，只受${dmg}傷害。<br>`;
       myHP -= dmg;
     } else {
-      resultStr += '防禦失敗，你受' + base + '傷害。<br>';
+      resultStr += `防禦失敗，你受${base}傷害。<br>`;
       myHP -= base;
     }
   }
-  if (myHP <= 0 && opHP <= 0) resultStr += window.LANGS[LANG].draw;
-  else if (myHP <= 0) resultStr += window.LANGS[LANG].lose;
-  else if (opHP <= 0) resultStr += window.LANGS[LANG].win;
-  document.getElementById('game-container').innerHTML = resultStr;
+  battleLogs.push(resultStr);
+  document.getElementById('game-container').innerHTML = battleLogs.join("<hr>");
+  updateStatus();
+
   setTimeout(() => {
     if (myHP <= 0 || opHP <= 0) {
       document.getElementById('status').innerText = window.LANGS[LANG].battleLog;
@@ -94,21 +102,20 @@ Network.onBattle(function (choices) {
   }, 3000);
 });
 
+function startGame() {
+  round = 1;
+  myHP = 200;
+  opHP = 200;
+  battleLogs = [];
+  document.getElementById('status').innerText = window.LANGS[LANG].round.replace('{0}', round);
+  runRound();
+}
+
 function runRound() {
-  document.getElementById('status').innerText =
-    window.LANGS[LANG].round.replace('{0}', round) +
-    ' ' +
-    window.LANGS[LANG].yourHP +
-    ':' +
-    myHP +
-    ' ' +
-    window.LANGS[LANG].opponentHP +
-    ':' +
-    opHP;
+  updateStatus();
   const cmdArea = document.getElementById('game-container');
   cmdArea.innerHTML = '';
   let dice = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
-
   if (myRole === 'atk') {
     let attacks = window.ATTACK_METHODS.slice(0);
     attacks.sort(() => Math.random() - 0.5);
