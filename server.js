@@ -23,23 +23,19 @@ function createOrJoinRoom(socket) {
 }
 
 function determineRoles(room) {
-  let dice1 = Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1;
-  let dice2 = Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1;
-  let players = games[room].players;
+  const [idA, idB] = games[room].players;
+  let diceA = Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1;
+  let diceB = Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1;
   let assign = {};
-  if (dice1 > dice2) {
-    assign[players[0]] = 'atk';
-    assign[players[1]] = 'def';
-  } else if (dice2 > dice1) {
-    assign[players] = 'def';
-    assign[players[1]] = 'atk';
+  if (diceA > diceB) {
+    assign[idA] = { role: 'atk', dice: diceA };
+    assign[idB] = { role: 'def', dice: diceB };
   } else {
-    assign[players] = 'atk';
-    assign[players[1]] = 'def';
+    assign[idA] = { role: 'def', dice: diceA };
+    assign[idB] = { role: 'atk', dice: diceB };
   }
-  io.to(players).emit('roleAssign', assign[players]);
-  io.to(players[1]).emit('roleAssign', assign[players[1]]);
-  io.to(room).emit('newRound', { dice1, dice2 });
+  io.to(idA).emit('roleAssign', assign[idA]);
+  io.to(idB).emit('roleAssign', assign[idB]);
 }
 
 io.on('connection', socket => {
@@ -49,7 +45,8 @@ io.on('connection', socket => {
   socket.on('setName', (name) => {
     games[playerRoom].names[socket.id] = name;
     io.to(playerRoom).emit('players', Object.values(games[playerRoom].names));
-    if (games[playerRoom].players.length === 2) determineRoles(playerRoom);
+    if (games[playerRoom].players.length === 2)
+      determineRoles(playerRoom);
   });
 
   socket.on('choice', (data) => {
@@ -57,7 +54,7 @@ io.on('connection', socket => {
     if (Object.keys(games[playerRoom].choices).length === 2) {
       io.to(playerRoom).emit('battle', games[playerRoom].choices);
       games[playerRoom].choices = {};
-      determineRoles(playerRoom); // 新回合自動決定攻防
+      determineRoles(playerRoom);
     }
   });
 
@@ -65,7 +62,7 @@ io.on('connection', socket => {
     if(games[playerRoom]){
       games[playerRoom].players = games[playerRoom].players.filter(id=>id!==socket.id);
       delete games[playerRoom].names[socket.id];
-      if(games[playerRoom].players.length===0) delete games[playerRoom];
+      if(games[playerRoom].players.length === 0) delete games[playerRoom];
       else io.to(playerRoom).emit('players', Object.values(games[playerRoom].names));
     }
   });
