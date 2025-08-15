@@ -1,8 +1,8 @@
 let LANG = 'zh';
 window.setLang = function (l) {
-  LANG = l;
-  setText();
+  LANG = l; setText();
 };
+// UI文字設定
 function setText() {
   document.getElementById('title').innerText = window.LANGS[LANG].title;
   document.getElementById('enterNameLabel').innerText = window.LANGS[LANG].enterName;
@@ -10,14 +10,13 @@ function setText() {
 }
 setText();
 
+// state
 let myName = '';
 let opponentName = '';
 let players = [];
 let gameInited = false;
 let myRole = null;
-let myHP = 200,
-  opHP = 200,
-  round = 1;
+let myHP = 200, opHP = 200, round = 1;
 let battleLogs = [];
 
 document.getElementById('enterGame').onclick = function () {
@@ -29,94 +28,102 @@ document.getElementById('enterGame').onclick = function () {
 };
 
 function updateStatus() {
-  document.getElementById('status').innerText =
-    `${myName} (${myRole === 'atk' ? '攻擊方' : '防守方'}) HP:${myHP}  |  ${opponentName} HP:${opHP}`;
+  document.getElementById('status').innerText = 
+    `${myName} (${myRole === 'atk' ? '攻擊方' : '防守方'}) HP:${myHP} | ${opponentName} HP:${opHP}`;
 }
 
-Network.onPlayers(function (list) {
+Network.onPlayers(function(list){
   players = list;
-  if (players.length == 2 && !gameInited) {
+  if(players.length == 2 && !gameInited){
     gameInited = true;
     opponentName = players.find(p => p !== myName);
     startGame();
-  } else if (players.length < 2) {
+  } else if(players.length < 2){
     document.getElementById('status').innerText = window.LANGS[LANG].noOpponent;
   }
 });
 
-Network.onRoleAssign(function (role) {
+Network.onRoleAssign(function(role){
   myRole = role;
   updateStatus();
   runRound();
 });
 
-Network.onBattle(function (choices) {
-  let [a, b] = Object.values(choices);
+Network.onBattle(function(choices){
+  // 以 myRole 判斷自己是 attacker 或 defender，正確變更 HP
+  let myChoice = null, opChoice = null;
+  for(const [id, choice] of Object.entries(choices)){
+    if(choice.name === myName){
+      myChoice = choice;
+    }else{
+      opChoice = choice;
+    }
+  }
+  // 如 server.js 傳送的是以 socket.id 為 key，也可以直接綁定
   let resultStr = '';
-  if (a.role === 'atk') {
-    let atk = window.ATTACK_METHODS.find(x => x.id === a.atkMethod);
-    let base = atk.calc(a.atkDice, b.defDice, b.defMethod);
-    let def = window.DEFENSE_METHODS.find(x => x.id === b.defMethod);
-    let succ = def.success(b.defDice, a.atkDice);
+  if(myRole === 'atk'){
+    let atk = window.ATTACK_METHODS.find(x => x.id === myChoice.atkMethod);
+    let base = atk.calc(myChoice.atkDice, opChoice.defDice, opChoice.defMethod);
+    let def = window.DEFENSE_METHODS.find(x => x.id === opChoice.defMethod);
+    let succ = def.success(opChoice.defDice, myChoice.atkDice);
     let dmg = 0;
-    if (b.defMethod == 'counter' && succ) {
+    if(opChoice.defMethod === 'counter' && succ){
       resultStr += `${opponentName} 反擊成功，你受${base}傷害。<br>`;
       myHP -= base;
-    } else if (succ) {
+    }else if(succ){
       dmg = def.resolve(base);
       resultStr += `${opponentName} ${def.name[LANG]}成功，你只受${dmg}傷害。<br>`;
       opHP -= dmg;
-    } else {
+    }else{
       resultStr += `${opponentName} 防禦失敗，受${base}傷害。<br>`;
       opHP -= base;
     }
-  } else {
-    let atk = window.ATTACK_METHODS.find(x => x.id === b.atkMethod);
-    let base = atk.calc(b.atkDice, a.defDice, a.defMethod);
-    let def = window.DEFENSE_METHODS.find(x => x.id === a.defMethod);
-    let succ = def.success(a.defDice, b.atkDice);
+  }else{
+    let atk = window.ATTACK_METHODS.find(x => x.id === opChoice.atkMethod);
+    let base = atk.calc(opChoice.atkDice, myChoice.defDice, myChoice.defMethod);
+    let def = window.DEFENSE_METHODS.find(x => x.id === myChoice.defMethod);
+    let succ = def.success(myChoice.defDice, opChoice.atkDice);
     let dmg = 0;
-    if (a.defMethod == 'counter' && succ) {
+    if(myChoice.defMethod === 'counter' && succ){
       resultStr += `你反擊成功，${opponentName} 受${base}傷害。<br>`;
       opHP -= base;
-    } else if (succ) {
+    }else if(succ){
       dmg = def.resolve(base);
       resultStr += `你${def.name[LANG]}成功，只受${dmg}傷害。<br>`;
       myHP -= dmg;
-    } else {
+    }else{
       resultStr += `防禦失敗，你受${base}傷害。<br>`;
       myHP -= base;
     }
   }
-  battleLogs.push(resultStr);
+  // push battle log
+  battleLogs.push(`第${round}回合：<br>`+resultStr);
+
   document.getElementById('game-container').innerHTML = battleLogs.join("<hr>");
   updateStatus();
 
   setTimeout(() => {
-    if (myHP <= 0 || opHP <= 0) {
+    if(myHP <= 0 || opHP <= 0){
       document.getElementById('status').innerText = window.LANGS[LANG].battleLog;
-    } else {
+    }else{
       round++;
       runRound();
     }
   }, 3000);
 });
 
-function startGame() {
-  round = 1;
-  myHP = 200;
-  opHP = 200;
-  battleLogs = [];
-  document.getElementById('status').innerText = window.LANGS[LANG].round.replace('{0}', round);
+function startGame(){
+  round = 1; myHP = 200; opHP = 200; battleLogs = [];
+  updateStatus();
   runRound();
 }
 
-function runRound() {
+function runRound(){
   updateStatus();
   const cmdArea = document.getElementById('game-container');
   cmdArea.innerHTML = '';
   let dice = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
-  if (myRole === 'atk') {
+  if(myRole === 'atk'){
     let attacks = window.ATTACK_METHODS.slice(0);
     attacks.sort(() => Math.random() - 0.5);
     attacks = attacks.slice(0, 3);
@@ -126,17 +133,17 @@ function runRound() {
     });
     cmdArea.innerHTML = str;
     window.chooseAtk = function (methodId, diceVal) {
-      Network.sendChoice({ role: 'atk', atkMethod: methodId, atkDice: diceVal });
+      Network.sendChoice({ name: myName, role: 'atk', atkMethod: methodId, atkDice: diceVal });
       cmdArea.innerHTML = window.LANGS[LANG].waiting;
     };
-  } else if (myRole === 'def') {
+  } else if(myRole === 'def'){
     let str = `<b>${window.LANGS[LANG].chooseDefense}：</b><br>`;
     window.DEFENSE_METHODS.forEach((d) => {
       str += `<button onclick="chooseDef('${d.id}',${dice})">${d.name[LANG]}</button><br>`;
     });
     cmdArea.innerHTML = str;
     window.chooseDef = function (defMethod, diceVal) {
-      Network.sendChoice({ role: 'def', defMethod: defMethod, defDice: diceVal });
+      Network.sendChoice({ name: myName, role: 'def', defMethod: defMethod, defDice: diceVal });
       cmdArea.innerHTML = window.LANGS[LANG].waiting;
     };
   }
